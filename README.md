@@ -8,6 +8,8 @@ I've listed which python libraries I am using under libraries and you can just i
 <b>Operation</b>
 <p>
 Run "python lvl1_image_gen.py MISR_HDF_Filename.hdf image_name.jpeg"
+
+There will be a bunch of setting options, so some files will have a max resolution of 512x2048 whereas some other files will have an even more scaled down resolution (usually these are the are the non-nadir camera files). You can choose which image size you want depending upon what is available (if only one option is available, it will be that size by default and won't prompt you for it). Other settings include whether you want a single block image or the block range you want and if the latter option is chosen, the blocks will be stitched together following the relative offsets. If there are any problems with the stitching of block images, please inform me asap. The cropping option for single block images will automatically take the largest rectangular image size that does not contain any fill values.
 </p>
 
 <b>Libraries</b>
