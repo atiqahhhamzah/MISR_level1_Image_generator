@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+#Property of Atiqah Hamzah
 import os
 import matplotlib as mpl
 import matplotlib.pyplot as plt
