@@ -22,7 +22,8 @@ These are the setting options:
  <li><em>Block number or block min and max</em></li>
  <p>This is either the block or block range you wish to have an image of</p>
  <li><em>Resolution</em></li>
- <p>This option is only available if the blocks were at a 512x2048 size (usually only the nadir camera angle contains this resolution)</p>
+ <p>This option is only available if the blocks were at a 512x2048 size (usually only the nadir camera angle contains this resolution). You can either leave it at that resolution or scale it down to 128x512</p>
+ 
  </ol>
  
 </p>
