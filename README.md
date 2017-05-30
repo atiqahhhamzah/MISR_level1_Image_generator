@@ -7,7 +7,7 @@ I've listed which python libraries I am using under libraries and you can just i
 </p>
 <b>Operation</b>
 <p>
-Run "python lvl1_image_gen.py <MISR HDF Filename> <output image name.png /.jpeg /.jpg etc>
+Run "python lvl1_image_gen.py MISR_HDF_Filename.hdf image_name.jpeg"
 </p>
 
 <b>Libraries</b>
