@@ -8,6 +8,8 @@ This is a pretty simple image generator that will generate any image for any lev
 <p>
 Run "python lvl1_image_gen.py MISR_HDF_Filename.hdf image_name.jpeg"
 
+Do not name your image files that and replace image_name with anything else. I think if you decide to change it to a png format it should also not be problematic (Albeit I haven't tested that out yet)
+
 These are the setting options:
 <ol>
 <li><em>Block setting</em></li>
