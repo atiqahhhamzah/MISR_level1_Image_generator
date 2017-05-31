@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Property of Atiqah Hamzah
 
 import os
 import matplotlib as mpl
@@ -308,7 +309,7 @@ def main():
 
 		if block_setting == 0:
 			if crop == 1: real_img = real_img.crop((0,offset_top,b_w,offset_bottom))
-			#real_img = real_img.transpose(Image.FLIP_TOP_BOTTOM)
+			real_img = real_img.transpose(Image.FLIP_TOP_BOTTOM)
 			real_img.save(image_file_name)
 			real_img.show()
 			print "\nSaved image inside " + image_file_name
