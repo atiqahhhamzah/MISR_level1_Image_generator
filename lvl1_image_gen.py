@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#Property of Atiqah Hamzah
+
 import os
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -52,6 +52,19 @@ offset = 		[0.0,	0.0,	16.0,	0.0,	16.0,	#1
 				 16.0,	0.0,	0.0,	16.0,	0.0]
 
 offset = map(int,offset)
+
+def color_channel_img_gen(block, block_width, block_height, clr):
+
+	img = Image.new('RGB',(block_width,block_height))
+	pixels = [(0,0,0)]*(block_width*block_height)
+	for i in range(block_width):
+			for j in range(block_height):
+				if i == 0: tup = (int(block[i][j]*256/40896),0,0)
+				if i == 1: tup = (0,int(block[i][j]*256/40896),0)
+				if i == 2: tup = (0,0,int(block[i][j]*256/40896))
+				pixels[j*block_width + i] = tup
+	img.putdata(pixels)
+	return img
 
 def set_crop_offsets(block, block_width, block_height):
 	top_left = 0
@@ -111,15 +124,16 @@ def main():
 	while True:
 		print "Please input setting: 0: One block image or 1: Block range image"
 		block_setting = int(sys.stdin.readline())
-		if(block_setting >= 0 and block_setting < 2):
+		if block_setting < 0 and block_setting > 1: print "Input correct setting number\n"
+		else: break
+
+	if block_setting == 0:
+		while True:
 			print "Cropped or not cropped? 0: No 1: Yes"
 			crop = int(sys.stdin.readline())
 			if(crop >= 0 and crop < 2):
 				break
 			print "Input correct crop choice\n"
-		else: print "Input correct setting number\n"
-
-	if block_setting == 0:
 		while(block_min < 0 or block_min > 179):
 			print "\nPlease put in block number"
 			block_min = int(sys.stdin.readline())
@@ -186,6 +200,8 @@ def main():
 
 	#Make a new background image with width being the total width of all possible blocks and height summed up with offsets in both direction
 	background = Image.new('RGB', (b_w*total_blocks, b_h+offset_scale*(abs(min_coor) + max_coor)), (0,0,0))
+
+
 
 	#red block
 	red_current_block = color_band_ds[0]
@@ -292,22 +308,18 @@ def main():
 
 		if block_setting == 0:
 			if crop == 1: real_img = real_img.crop((0,offset_top,b_w,offset_bottom))
-			real_img = real_img.transpose(Image.FLIP_TOP_BOTTOM)
+			#real_img = real_img.transpose(Image.FLIP_TOP_BOTTOM)
 			real_img.save(image_file_name)
 			real_img.show()
 			print "\nSaved image inside " + image_file_name
 
 
 		#Stitch image onto correct offset in background
-		if block_setting == 1:
+		elif block_setting == 1:
 			print "Real Offset " + str(blk) + " idx " + str(idx) + ' : ' + str(offset[blk]*offset_scale)
 			real_offset = (idx*b_w, offset_scale*(prev_offset + offset[blk]))
 			prev_offset = prev_offset + offset[blk]
-
-
-
 			background.paste(real_img, real_offset)
-			idx+= 1
 	
 	#Flip horizontal to get correct orientation
 	if block_setting == 1:
