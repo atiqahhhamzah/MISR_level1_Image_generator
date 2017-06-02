@@ -1,11 +1,9 @@
 #!/usr/bin/env python
-# Property of Atiqah Hamzah
 
 import os
-import matplotlib as mpl
-import matplotlib.pyplot as plt
 import numpy as np
 import sys
+import scipy.ndimage
 from pyhdf.SD import *
 from colour import Color
 from PIL import Image
@@ -55,15 +53,15 @@ offset = 		[0.0,	0.0,	16.0,	0.0,	16.0,	#1
 offset = map(int,offset)
 
 def color_channel_img_gen(block, block_width, block_height, clr):
-
+ 
 	img = Image.new('RGB',(block_width,block_height))
-	pixels = [(0,0,0)]*(block_width*block_height)
-	for i in range(block_width):
-			for j in range(block_height):
-				if i == 0: tup = (int(block[i][j]*256/40896),0,0)
-				if i == 1: tup = (0,int(block[i][j]*256/40896),0)
-				if i == 2: tup = (0,0,int(block[i][j]*256/40896))
-				pixels[j*block_width + i] = tup
+	block = block.ravel()
+	block = np.int_((np.float_(np.float_(block)/40896))*256)
+	block = block.reshape(block_height,block_width,order='F').ravel()
+	other = [0]*len(block)
+	if clr is 0: pixels = zip(block,other,other)
+	elif clr is 1: pixels = zip(other,block,other)
+	elif clr is 2: pixels = zip(other,other,block)
 	img.putdata(pixels)
 	return img
 
@@ -125,7 +123,7 @@ def main():
 	while True:
 		print "Please input setting: 0: One block image or 1: Block range image"
 		block_setting = int(sys.stdin.readline())
-		if block_setting < 0 and block_setting > 1: print "Input correct setting number\n"
+		if block_setting < 0 or block_setting > 1: print "Input correct setting number\n"
 		else: break
 
 	if block_setting == 0:
@@ -201,9 +199,7 @@ def main():
 
 	#Make a new background image with width being the total width of all possible blocks and height summed up with offsets in both direction
 	background = Image.new('RGB', (b_w*total_blocks, b_h+offset_scale*(abs(min_coor) + max_coor)), (0,0,0))
-
-
-
+	
 	#red block
 	red_current_block = color_band_ds[0]
 	red_block_width = len(red_current_block[0])
@@ -244,72 +240,55 @@ def main():
 				offset_bottom = offset_bottom/4
 		
 		blue_block[blue_block == fill_val] = 0
-		
-		#Set up images for all three colors and their pixel arrays
-		red_img = Image.new('RGB',(red_block_width,red_block_height))
-		green_img = Image.new('RGB',(green_block_width,green_block_height))
-		blue_img = Image.new('RGB',(blue_block_width,blue_block_height))
-		red_p = [(0,0,0)]*(red_block_width*red_block_height)
-		green_p = [(0,0,0)]*(green_block_width*green_block_height)
-		blue_p = [(0,0,0)]*(blue_block_width*blue_block_height)
 
-		# Create true size red pixel array
-		for i in range(0,red_block_width):
-			for j in range(0,red_block_height):
-				red_p[j*red_block_width + i] = (int(red_block[i][j]*256/40896),0,0)
-
-		#Put pixel rgb array onto red image
-		red_img.putdata(red_p)
-
-		# Create true size green pixel array
-		for i in range(0,green_block_width):
-			for j in range(0,green_block_height):
-				green_p[j*green_block_width + i] = (0,int(green_block[i][j]*256/40896),0)
-				
-		#Put pixel rgb array onto green image
-		green_img.putdata(green_p)
-
-		#Put pixel rgb array onto blue image
-		for i in range(0,blue_block_width):
-			for j in range(0,blue_block_height):
-				blue_p[j*blue_block_width + i] = (0,0,int(blue_block[i][j]*256/40896))
-
-		#Put pixel rgb array onto blue image
-		blue_img.putdata(blue_p)
-
-		#If any off images are the biggest resolution, reduce resolution to that of 128*512 if there is an option
-		if(b_w < max(red_block_width,green_block_width, blue_block_width)):
-			if(red_block_width == 512):
-				red_img = red_img.resize((b_w,b_h),1)
-				red_p = red_img.load()
-			if(green_block_width == 512):
-				green_img = green_img.resize((b_w,b_h),1)
-				green_p = green_img.load()
-			if(blue_block_width == 512):
-				blue_img = blue_img.resize((b_w,b_h),1)
-				blue_p = blue_img.load()
-
-
-		#Reload pixel arrays just in case of resize to avoid type conflicts
-		red_p = red_img.load()
-		green_p = green_img.load()
-		blue_p = blue_img.load()
-
-		#Make true color image of block by combining red, green, blue values into tuple
 		real_img = Image.new('RGB',(b_w,b_h))
-		pixel = [(0,0,0)]*(b_w*b_h)
-		for i in range(b_w):
-			for j in range(b_h):
-				red = (red_p[i,j])[0]
-				green = (green_p[i,j])[1]
-				blue = (blue_p[i,j])[2]
-				pixel[j*b_w + i] = (red,green,blue)
+		if(red_block_width != green_block_width  or red_block_width != blue_block_width or green_block_width != blue_block_width):
+			red_img = color_channel_img_gen(red_block, red_block_width, red_block_height, 0)
+			green_img = color_channel_img_gen(green_block, green_block_width, green_block_height, 1)
+			blue_img = color_channel_img_gen(blue_block, blue_block_width, blue_block_height, 2)
+			
+			if(b_w < max(red_block_width,green_block_width, blue_block_width)):
+				if(red_block_width == 512):
+					red_img = red_img.resize((b_w,b_h),1)
+				if(green_block_width == 512):
+					green_img = green_img.resize((b_w,b_h),1)
+				if(blue_block_width == 512):
+					blue_img = blue_img.resize((b_w,b_h),1)
 
-		real_img.putdata(pixel)
+			red_p = red_img.load()
+			green_p = green_img.load()
+			blue_p = blue_img.load()
+		
+			pixel = [(0,0,0)]*(b_w*b_h)
+			for i in range(b_w):
+				for j in range(b_h):
+					pixel[j*b_w + i] = (red_p[i,j][0], green_p[i,j][1], blue_p[i,j][2])
+
+			real_img.putdata(pixel)
+
+		else:
+			#TODO: a different way of computing 
+			red_block = red_block.ravel()
+			green_block = green_block.ravel()
+			blue_block = blue_block.ravel()
+
+			red_block = np.int_((np.float_(np.float_(red_block)/40896))*256)
+			red_p = red_block.reshape(red_block_height,red_block_width,order='F').ravel()
+
+			green_block = np.int_((np.float_(np.float_(green_block)/40896))*256)
+			green_p = green_block.reshape(green_block_height,green_block_width, order='F').ravel()
+
+			blue_block = np.int_((np.float_(np.float_(blue_block)/40896))*256)
+			blue_p = blue_block.reshape(blue_block_height,blue_block_width, order='F').ravel()
+		
+			pixel = zip(red_p, green_p, blue_p)
+			real_img = Image.new('RGB',(red_block_width,red_block_height))
+			real_img.putdata(pixel)
+			real_img = real_img.resize((b_w,b_h),1)
 
 		if block_setting == 0:
 			if crop == 1: real_img = real_img.crop((0,offset_top,b_w,offset_bottom))
-			#real_img = real_img.transpose(Image.FLIP_TOP_BOTTOM)
+			real_img = real_img.transpose(Image.FLIP_TOP_BOTTOM)
 			real_img.save(image_file_name)
 			real_img.show()
 			print "\nSaved image inside " + image_file_name
@@ -324,7 +303,7 @@ def main():
 	
 	#Flip horizontal to get correct orientation
 	if block_setting == 1:
-		#background = background.transpose(Image.FLIP_TOP_BOTTOM)
+		background = background.transpose(Image.FLIP_TOP_BOTTOM)
 		background.save(image_file_name)
 		background.show()
 		print "\nSaved image inside " + image_file_name
