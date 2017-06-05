@@ -3,9 +3,8 @@
 import os
 import numpy as np
 import sys
-import scipy.ndimage
 from pyhdf.SD import *
-from colour import Color
+#from colour import Color
 from PIL import Image
 
 fill_val = 65515
@@ -55,9 +54,8 @@ offset = map(int,offset)
 def color_channel_img_gen(block, block_width, block_height, clr):
  
 	img = Image.new('RGB',(block_width,block_height))
-	block = block.ravel()
-	block = np.int_((np.float_(np.float_(block)/40896))*256)
 	block = block.reshape(block_height,block_width,order='F').ravel()
+	block = np.int_((np.float_(np.float_(block)/40896))*256)
 	other = [0]*len(block)
 	if clr is 0: pixels = zip(block,other,other)
 	elif clr is 1: pixels = zip(other,block,other)
