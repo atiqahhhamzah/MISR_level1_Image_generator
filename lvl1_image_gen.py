@@ -3,6 +3,7 @@
 import os
 import numpy as np
 import sys
+import argparse
 from pyhdf.SD import *
 #from colour import Color
 from PIL import Image
@@ -54,6 +55,7 @@ offset = map(int,offset)
 def color_channel_img_gen(block, block_width, block_height, clr):
  
 	img = Image.new('RGB',(block_width,block_height))
+	block = block.ravel()
 	block = block.reshape(block_height,block_width,order='F').ravel()
 	block = np.int_((np.float_(np.float_(block)/40896))*256)
 	other = [0]*len(block)
@@ -92,85 +94,59 @@ def set_crop_offsets(block, block_width, block_height):
 	
 def main():
 
-	if (len(sys.argv) < 2):
-		print "error: need input file"
-		sys.exit(1)
+	#Flags:
+	block_min = 0
+	block_max = 0
+	block_setting = 0
+	crop = 0
 
-	if (len(sys.argv) < 3):
-		print "error: need output file"
-		sys.exit(1)
+	parser = argparse.ArgumentParser(description='This will take in either MISR level 1 image file and generate an images depending upon input arguments')
+	parser.add_argument('-b', '--block',default=0,required=True,help='Starting block number')
+	parser.add_argument('-b_m', '--block_end',default=-1,help='Ending block number for block ranges')
+	parser.add_argument('-i','--input',required=True,help='Input hdf file name')
+	parser.add_argument('-o','--output',required=True,help='Output image file name')
 
+	parser.add_argument('-c','--crop',action='store_true',help='Add flag if cropped image is desired')
+	parser.add_argument('-R','--high_res',action='store_true',help='Add flag if want highest resolution possible if available')
+	args = parser.parse_args()
+
+	block_min = int(args.block)
+	crop = 1 if args.crop == True else 0 
+
+	block_max = int(args.block_end) if args.block_end != -1 else block_min
+
+	if block_min < 0: block_min = 0
+	if block_max > 179: block_max = 179
+
+	if block_min > block_max: sys.exit("Last block must not be smaller than starting block")
+
+	if crop == 1 and block_max != block_min:
+		sys.exit("Block ranges cannot be cropped")
+
+	if block_min == block_max: block_setting = 0
+	else: block_setting = 1
+	
 	#Obtaining file name
-	hdf_file_name = sys.argv[1]
-	image_file_name = sys.argv[2]
+	hdf_file_name = args.input
+	image_file_name = args.output
+	
+	if(hdf_file_name.find('.hdf') == -1):sys.exit("Please choose a proper hdf file as input")
 
-	#Obtaining the hdf datasets
 	hdf = SD(hdf_file_name)
 
 	#Make dataset list or red, blue, green colors
 	color_band_ds = [hdf.select('Red Radiance/RDQI'),hdf.select('Green Radiance/RDQI'),hdf.select('Blue Radiance/RDQI')]
 
-	block_min = -1
-	block_max = 180
-	print '\n'
-
-	block_setting = 0
-	crop = 0
-
-	#Obtain block range
-	while True:
-		print "Please input setting: 0: One block image or 1: Block range image"
-		block_setting = int(sys.stdin.readline())
-		if block_setting < 0 or block_setting > 1: print "Input correct setting number\n"
-		else: break
-
-	if block_setting == 0:
-		while True:
-			print "Cropped or not cropped? 0: No 1: Yes"
-			crop = int(sys.stdin.readline())
-			if(crop >= 0 and crop < 2):
-				break
-			print "Input correct crop choice\n"
-		while(block_min < 0 or block_min > 179):
-			print "\nPlease put in block number"
-			block_min = int(sys.stdin.readline())
-			block_max = block_min
-			if(block_min < 0 or block_min > 179):
-				print "Error: please input correct block number"
-
-	while True and block_setting == 1:
-		
-		while(block_min < 0):
-			print "\nPlease put in block range minimum value"
-			block_min = int(sys.stdin.readline())
-			if(block_min < 0 or block_min > 179):
-				print "Error: please input correct block range minimum value"
-
-		while(block_max > 179):
-			print "\nPlease put in block range maximum value"
-			block_max = int(sys.stdin.readline())
-			if(block_max < 0 or block_max > 179):
-				print "Error: please input correct block range maximum value"
-
-		if(block_min <= block_max): break
-		else:
-			block_min = -1
-			block_max = 180
-
 	b_w = 128
 	b_h = 512
 	offset_scale = 1
 
-	if len(color_band_ds[1][1]) == 512:
-		while True:
-			print "\nPlease choose resolution by typing the number: 0: 128x512 or 1: 512x2048"
-			res = int(sys.stdin.readline())
-			if(res > 1 or res < 0): print "Error: Wrong resolution input. Please type again\n"
-			else: 
-				b_w = widths[res]
-				b_h = heights[res]
-				offset_scale = offset_scale_factor[res]
-				break
+
+	res = 1 if (args.high_res == True and len(color_band_ds[1][1]) == 512)  else 0
+
+	b_w = widths[res]
+	b_h =heights[res]
+	offset_scale = offset_scale_factor[res]
 
 	#Calculate total blocks
 	total_blocks = (block_max - block_min) + 1
